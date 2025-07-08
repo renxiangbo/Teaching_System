@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <title>教学视频互动答题系统</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      flex-direction: column;
+      min-height: 100vh;
+      margin: 0;
+    }
+    #question-box {
+      display: none;
+      position: absolute;
+      top: 20%;
+      left: 30%;
+      width: 40%;
+      padding: 20px;
+      background-color: white;
+      border: 2px solid #333;
+      z-index: 10;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    }
+    #overlay {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background-color: rgba(0,0,0,0.5);
+      z-index: 9;
+    }
+    .option {
+      margin-top: 10px;
+    }
+    #feedback {
+      display: none;
+      position: fixed;
+      top: 35%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 100;
+      background: white;
+      border: 2px solid #ccc;
+      padding: 10px 20px;
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      border-radius: 10px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    }
+    #feedback img {
+      width: 60px;
+      height: auto;
+    }
+    #feedback-text {
+      font-size: 18px;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+
+<video id="myVideo" width="720" controls>
+  <source src="第三节截取答题片段.mp4" type="video/mp4">
+  您的浏览器不支持 HTML5 视频。
+</video>
+
+<div id="overlay"></div>
+
+<div id="question-box">
+  <p id="question-text"></p>
+  <div id="options"></div>
+  <button onclick="submitAnswer()">提交</button>
+</div>
+
+<div id="feedback">
+  <img id="feedback-img" src="" alt="feedback">
+  <div id="feedback-text"></div>
+</div>
+
+<script>
+  const video = document.getElementById('myVideo');
+  const questionBox = document.getElementById('question-box');
+  const overlay = document.getElementById('overlay');
+  const questionText = document.getElementById('question-text');
+  const optionsDiv = document.getElementById('options');
+  const feedbackDiv = document.getElementById('feedback');
+
+  feedbackDiv.style.display = 'none'; // 确保初始隐藏
+
+  const questions = [
+    {
+      time: 10,
+      shown: false,
+      question: "下面哪个是 Python 的合法变量名？",
+      options: ["123abc", "_name", "for", "class-name"],
+      correct: ["B"],
+      multiple: false
+    },
+    {
+      time: 20,
+      shown: false,
+      question: "哪些是 HTML 标签？（可多选）",
+      options: ["fgdg", "#header", ".container", "div"],
+      correct: ["A", "D"],
+      multiple: true
+    },
+    {
+      time: 55,
+      shown: false,
+      question: "你下载论文的网站包括哪些？（可多选）",
+      options: ["中国期刊网", "IEEE", "Elsevier", "Springer"],
+      correct: ["A", "B", "C", "D"],
+      multiple: true
+    }
+  ];
+
+  let currentQuestion = null;
+
+  video.addEventListener('timeupdate', () => {
+    const currentTime = Math.floor(video.currentTime);
+    questions.forEach((q, index) => {
+      if (!q.shown && currentTime >= q.time) {
+        showQuestion(q, index);
+      }
+    });
+  });
+
+  function showQuestion(question, index) {
+    currentQuestion = { ...question, index };
+    questionText.innerText = question.question;
+    optionsDiv.innerHTML = '';
+
+    question.options.forEach((opt, i) => {
+      const letter = String.fromCharCode(65 + i);
+      const inputType = question.multiple ? 'checkbox' : 'radio';
+      const label = document.createElement('label');
+      label.className = 'option';
+      label.innerHTML = `<input type="${inputType}" name="option" value="${letter}"> ${letter}. ${opt}`;
+      optionsDiv.appendChild(label);
+      optionsDiv.appendChild(document.createElement('br'));
+    });
+
+    overlay.style.display = 'block';
+    questionBox.style.display = 'block';
+    video.pause();
+  }
+
+  function submitAnswer() {
+    const selectedInputs = document.querySelectorAll('input[name="option"]:checked');
+    if (selectedInputs.length === 0) {
+      alert("请至少选择一个选项！");
+      return;
+    }
+
+    const selected = Array.from(selectedInputs).map(input => input.value).sort();
+    const correct = currentQuestion.correct.slice().sort();
+
+    const isCorrect = selected.length === correct.length && selected.every((val, idx) => val === correct[idx]);
+
+    showFeedback(isCorrect);
+    questions[currentQuestion.index].shown = true;
+    questionBox.style.display = 'none';
+    overlay.style.display = 'none';
+    video.play();
+  }
+
+  function showFeedback(isCorrect) {
+    const feedbackImg = document.getElementById('feedback-img');
+    const feedbackText = document.getElementById('feedback-text');
+
+    feedbackImg.src = isCorrect ? 'success.gif' : 'fail.gif';
+    feedbackText.innerText = isCorrect ? '回答正确！' : '回答错误！';
+
+    feedbackDiv.style.display = 'flex';
+
+    setTimeout(() => {
+      feedbackDiv.style.display = 'none';
+    }, 2000);
+  }
+</script>
+
+</body>
+</html>
